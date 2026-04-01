@@ -4,7 +4,11 @@ on:
   push:
     branches: [main]
     paths:
-      - "data/*.json"
+      - "data/**"
+      - "src/**"
+
+  schedule:
+    - cron: "0 6 * * *"
 
   workflow_dispatch:
 
