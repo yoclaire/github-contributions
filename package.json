@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "sync": "tsx src/sync.ts",
     "generate": "tsx src/generate.ts",
     "test": "vitest run",
     "test:watch": "vitest"

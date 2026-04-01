@@ -28,17 +28,22 @@ jobs:
 
       - run: npm ci
 
+      - name: Sync contributions data
+        run: npm run sync
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - run: npm run generate
 
-      - name: Commit generated SVG
+      - name: Commit updated data and SVG
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add contributions.svg
+          git add data/contributions.json contributions.svg
           if git diff --cached --quiet; then
-            echo "No changes to contributions.svg"
+            echo "No changes"
           else
-            git commit -m "chore: regenerate contributions.svg"
+            git commit -m "stats: update contributions $(date -u +%Y-%m-%d)"
             git pull --rebase
             git push
           fi
