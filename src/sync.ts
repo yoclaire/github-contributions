@@ -8,6 +8,12 @@ import {
   pruneEmptyLeadingYears,
 } from "./sync-core.js";
 
+// This script must run from a residential IP (i.e. one of Claire's machines,
+// via sync-contributions.sh). It scrapes the profile calendar HTML because
+// that is the only per-day source that includes private/org contributions:
+// the GraphQL contributionCalendar exposes them only as an aggregate
+// restrictedContributionsCount, and GitHub serves count-less calendar pages
+// to Actions runner IPs. CI just renders the SVG from the committed data.
 const USERNAME = "yoclaire";
 const DATA_FILE = join(process.cwd(), "data", "contributions.json");
 
@@ -15,32 +21,6 @@ function fetchYearHtml(year: number): string {
   const url = `https://github.com/users/${USERNAME}/contributions?from=${year}-12-01`;
   // -f: fail on HTTP errors (429 etc.) instead of parsing an error page
   return execFileSync("curl", ["-sf", url], { encoding: "utf-8" });
-}
-
-function getContributionYears(existing: DailyContribution[]): number[] {
-  // Try gh CLI first (local dev), fall back to deriving from existing data + current year
-  try {
-    const result = execFileSync(
-      "gh",
-      [
-        "api", "graphql",
-        "-f", "query={ viewer { contributionsCollection { contributionYears } } }",
-        "--jq", ".data.viewer.contributionsCollection.contributionYears",
-      ],
-      { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] }
-    );
-    return JSON.parse(result).sort() as number[];
-  } catch {
-    // In CI or without gh: use existing data range through current year
-    const current = new Date().getFullYear();
-    let earliest = current;
-    if (existing.length > 0) {
-      earliest = parseInt(existing[0].date.slice(0, 4), 10);
-    }
-    const years: number[] = [];
-    for (let y = earliest; y <= current; y++) years.push(y);
-    return years;
-  }
 }
 
 // Main
@@ -54,13 +34,16 @@ try {
 } catch {
   // First run, no existing data
 }
-
-// Drop inactive leading years (a bad scrape once seeded zero-count days back
-// to 1969, which made CI fetch 58 year pages and get rate-limited)
 existing.dailyContributions = pruneEmptyLeadingYears(existing.dailyContributions);
 
-const years = getContributionYears(existing.dailyContributions);
-console.log(`Found contribution years: ${years.join(", ")}`);
+const currentYear = new Date().getFullYear();
+const earliest =
+  existing.dailyContributions.length > 0
+    ? parseInt(existing.dailyContributions[0].date.slice(0, 4), 10)
+    : currentYear;
+const years: number[] = [];
+for (let y = earliest; y <= currentYear; y++) years.push(y);
+console.log(`Syncing years: ${years.join(", ")}`);
 
 const allScraped: DailyContribution[] = [];
 
@@ -73,7 +56,11 @@ for (const year of years) {
   execFileSync("sleep", ["1"]); // don't hammer github.com from one IP
 }
 
-const merged = mergeHighWaterMark(existing.dailyContributions, allScraped);
+// Prune after merging so junk zero-count years can never accumulate again
+// (a bad sync once seeded zero-count days back to 1969)
+const merged = pruneEmptyLeadingYears(
+  mergeHighWaterMark(existing.dailyContributions, allScraped)
+);
 const totalContributions = merged.reduce((s, d) => s + d.count, 0);
 
 const result: ContributionData = {

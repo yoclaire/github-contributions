@@ -1,5 +1,25 @@
 import { DailyContribution } from "./types.js";
 
+export function mergeHighWaterMark(
+  existing: DailyContribution[],
+  scraped: DailyContribution[]
+): DailyContribution[] {
+  const map = new Map<string, number>();
+
+  for (const d of existing) {
+    map.set(d.date, d.count);
+  }
+
+  for (const d of scraped) {
+    const prev = map.get(d.date) ?? 0;
+    map.set(d.date, Math.max(prev, d.count));
+  }
+
+  return [...map.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, count]) => ({ date, count }));
+}
+
 export function parseYearHtml(html: string, year: number): DailyContribution[] {
   const days: DailyContribution[] = [];
 
@@ -35,26 +55,6 @@ export function parseYearHtml(html: string, year: number): DailyContribution[] {
   }
 
   return days;
-}
-
-export function mergeHighWaterMark(
-  existing: DailyContribution[],
-  scraped: DailyContribution[]
-): DailyContribution[] {
-  const map = new Map<string, number>();
-
-  for (const d of existing) {
-    map.set(d.date, d.count);
-  }
-
-  for (const d of scraped) {
-    const prev = map.get(d.date) ?? 0;
-    map.set(d.date, Math.max(prev, d.count));
-  }
-
-  return [...map.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, count]) => ({ date, count }));
 }
 
 export function pruneEmptyLeadingYears(

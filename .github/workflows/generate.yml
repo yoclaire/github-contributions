@@ -28,22 +28,22 @@ jobs:
 
       - run: npm ci
 
-      - name: Sync contributions data
-        run: npm run sync
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: npm test
 
+      # Sync runs locally via sync-contributions.sh — GitHub serves count-less
+      # calendar pages to Actions IPs, so scraping from CI silently no-ops.
+      # CI only renders the SVG from the committed data.
       - run: npm run generate
 
-      - name: Commit updated data and SVG
+      - name: Commit updated SVG
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/contributions.json contributions.svg
+          git add contributions.svg
           if git diff --cached --quiet; then
             echo "No changes"
           else
-            git commit -m "stats: update contributions $(date -u +%Y-%m-%d)"
+            git commit -m "stats: regenerate SVG $(date -u +%Y-%m-%d)"
             git pull --rebase
             git push
           fi
