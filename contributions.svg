@@ -411,6 +411,7 @@
           <rect x="676" y="13" width="10" height="10" rx="2" fill="#161b22" stroke="#30363d" stroke-width="0.5"/>
           <rect x="676" y="26" width="10" height="10" rx="2" fill="#161b22" stroke="#30363d" stroke-width="0.5"/>
           <rect x="676" y="39" width="10" height="10" rx="2" fill="#161b22" stroke="#30363d" stroke-width="0.5"/>
+          <rect x="676" y="52" width="10" height="10" rx="2" fill="#161b22" stroke="#30363d" stroke-width="0.5"/>
     </g>
 
     <g transform="translate(308, 116)">
